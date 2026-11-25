@@ -1,30 +1,9 @@
 ﻿
 import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import {
-  Alert,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import {
-  AudioModule,
-  RecordingPresets,
-  setAudioModeAsync,
-  useAudioRecorder,
-  useAudioRecorderState,
-} from "expo-audio";
-
-type SavedRecording = {
-  id: string;
-  uri: string;
-  title: string;
-  date: string;
-  duration: number;
-};
+import { Alert,Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View,} from "react-native";
+import { AudioModule, RecordingPresets, setAudioModeAsync,useAudioRecorder, useAudioRecorderState,} from "expo-audio";
+import type { SavedRecording } from "../types/recording";
 
 function formatDuration(milliseconds: number) {
   const totalSeconds = Math.floor(milliseconds / 1000);
@@ -598,4 +577,3 @@ const styles = StyleSheet.create({
     marginTop: 30,
   },
 });
-
