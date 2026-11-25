@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "EchoJournal",
@@ -7,7 +8,10 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Echo Journal needs microphone access so you can record and save your voice notes."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -20,6 +24,14 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow Echo Journal to access your microphone so you can record voice notes."
+        }
+      ]
+    ]
   }
 }
