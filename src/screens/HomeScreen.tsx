@@ -1,17 +1,24 @@
-﻿
-import { useState } from "react";
+﻿import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { Alert,Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View,} from "react-native";
-import { AudioModule, RecordingPresets, setAudioModeAsync,useAudioRecorder, useAudioRecorderState,} from "expo-audio";
+import {
+  Alert,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import {
+  AudioModule,
+  RecordingPresets,
+  setAudioModeAsync,
+  useAudioRecorder,
+  useAudioRecorderState,
+} from "expo-audio";
+
 import type { SavedRecording } from "../types/recording";
-
-function formatDuration(milliseconds: number) {
-  const totalSeconds = Math.floor(milliseconds / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-}
+import { formatDuration } from "../utils/formatDuration";
 
 export default function HomeScreen() {
   const [recordings, setRecordings] = useState<SavedRecording[]>([]);
@@ -28,13 +35,12 @@ export default function HomeScreen() {
     try {
       setIsProcessing(true);
 
-      const permission =
-        await AudioModule.requestRecordingPermissionsAsync();
+      const permission = await AudioModule.requestRecordingPermissionsAsync();
 
       if (!permission.granted) {
         Alert.alert(
           "Microphone permission required",
-          "Please allow Echo Journal to access your microphone before recording."
+          "Please allow Echo Journal to access your microphone before recording.",
         );
         return;
       }
@@ -50,7 +56,7 @@ export default function HomeScreen() {
       console.error("Could not start recording:", error);
       Alert.alert(
         "Recording error",
-        "We couldn't start your recording. Please try again."
+        "We couldn't start your recording. Please try again.",
       );
     } finally {
       setIsProcessing(false);
@@ -70,7 +76,7 @@ export default function HomeScreen() {
       if (!uri) {
         Alert.alert(
           "Recording not saved",
-          "We couldn't find the saved audio file. Please try again."
+          "We couldn't find the saved audio file. Please try again.",
         );
         return;
       }
@@ -90,13 +96,13 @@ export default function HomeScreen() {
 
       Alert.alert(
         "Recording saved",
-        "Your voice note has been saved successfully."
+        "Your voice note has been saved successfully.",
       );
     } catch (error) {
       console.error("Could not stop recording:", error);
       Alert.alert(
         "Saving error",
-        "Something went wrong while saving your recording."
+        "Something went wrong while saving your recording.",
       );
     } finally {
       setIsProcessing(false);
@@ -123,9 +129,7 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.appName}>echo journal</Text>
-            <Text style={styles.headerSubtitle}>
-              Your voice, your moments.
-            </Text>
+            <Text style={styles.headerSubtitle}>Your voice, your moments.</Text>
           </View>
 
           <View style={styles.profileCircle}>
