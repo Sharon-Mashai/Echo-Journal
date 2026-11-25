@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
   Alert,
@@ -9,13 +10,126 @@ import {
   Text,
   View,
 } from "react-native";
+import {
+  AudioModule,
+  RecordingPresets,
+  setAudioModeAsync,
+  useAudioRecorder,
+  useAudioRecorderState,
+} from "expo-audio";
+
+type SavedRecording = {
+  id: string;
+  uri: string;
+  title: string;
+  date: string;
+  duration: number;
+};
+
+function formatDuration(milliseconds: number) {
+  const totalSeconds = Math.floor(milliseconds / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
 
 export default function App() {
-  const handleStartRecording = () => {
-    Alert.alert(
-      "Coming soon",
-      "Audio recording will be available in the next development step."
-    );
+  const [recordings, setRecordings] = useState<SavedRecording[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const audioRecorder = useAudioRecorder({
+    ...RecordingPresets.HIGH_QUALITY,
+    directory: "document",
+  });
+
+  const recorderState = useAudioRecorderState(audioRecorder);
+
+  const handleStartRecording = async () => {
+    try {
+      setIsProcessing(true);
+
+      const permission =
+        await AudioModule.requestRecordingPermissionsAsync();
+
+      if (!permission.granted) {
+        Alert.alert(
+          "Microphone permission required",
+          "Please allow Echo Journal to access your microphone before recording."
+        );
+        return;
+      }
+
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        allowsRecording: true,
+      });
+
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
+    } catch (error) {
+      console.error("Could not start recording:", error);
+      Alert.alert(
+        "Recording error",
+        "We couldn't start your recording. Please try again."
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleStopRecording = async () => {
+    try {
+      setIsProcessing(true);
+
+      const duration = recorderState.durationMillis;
+
+      await audioRecorder.stop();
+
+      const uri = audioRecorder.uri;
+
+      if (!uri) {
+        Alert.alert(
+          "Recording not saved",
+          "We couldn't find the saved audio file. Please try again."
+        );
+        return;
+      }
+
+      const newRecording: SavedRecording = {
+        id: `${Date.now()}`,
+        uri,
+        title: `Voice note ${recordings.length + 1}`,
+        date: new Date().toLocaleString(),
+        duration,
+      };
+
+      setRecordings((previousRecordings) => [
+        newRecording,
+        ...previousRecordings,
+      ]);
+
+      Alert.alert(
+        "Recording saved",
+        "Your voice note has been saved successfully."
+      );
+    } catch (error) {
+      console.error("Could not stop recording:", error);
+      Alert.alert(
+        "Saving error",
+        "Something went wrong while saving your recording."
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRecordingButton = () => {
+    if (recorderState.isRecording) {
+      handleStopRecording();
+    } else {
+      handleStartRecording();
+    }
   };
 
   return (
@@ -52,13 +166,30 @@ export default function App() {
         </View>
 
         {/* Recording card */}
-        <View style={styles.recordingCard}>
+        <View
+          style={[
+            styles.recordingCard,
+            recorderState.isRecording && styles.activeRecordingCard,
+          ]}
+        >
           <View style={styles.recordingCardTop}>
-            <View>
-              <Text style={styles.cardEyebrow}>READY WHEN YOU ARE</Text>
-              <Text style={styles.recordingTitle}>Start a new recording</Text>
+            <View style={styles.recordingTextContainer}>
+              <Text style={styles.cardEyebrow}>
+                {recorderState.isRecording
+                  ? "RECORDING IN PROGRESS"
+                  : "READY WHEN YOU ARE"}
+              </Text>
+
+              <Text style={styles.recordingTitle}>
+                {recorderState.isRecording
+                  ? "Your moment is being captured"
+                  : "Start a new recording"}
+              </Text>
+
               <Text style={styles.recordingDescription}>
-                Find your moment. Press record.
+                {recorderState.isRecording
+                  ? "Speak freely. Take your time."
+                  : "Find your moment. Press record."}
               </Text>
             </View>
 
@@ -66,25 +197,55 @@ export default function App() {
               {[18, 30, 22, 42, 26, 36, 17].map((height, index) => (
                 <View
                   key={index}
-                  style={[styles.waveBar, { height }]}
+                  style={[
+                    styles.waveBar,
+                    { height },
+                    recorderState.isRecording && styles.activeWaveBar,
+                  ]}
                 />
               ))}
             </View>
           </View>
 
+          {recorderState.isRecording && (
+            <View style={styles.timerContainer}>
+              <View style={styles.liveDot} />
+              <Text style={styles.timerText}>
+                {formatDuration(recorderState.durationMillis)}
+              </Text>
+            </View>
+          )}
+
           <Pressable
             style={({ pressed }) => [
               styles.recordButton,
+              recorderState.isRecording && styles.stopButton,
               pressed && styles.recordButtonPressed,
+              isProcessing && styles.disabledButton,
             ]}
-            onPress={handleStartRecording}
+            onPress={handleRecordingButton}
+            disabled={isProcessing}
           >
-            <View style={styles.recordIcon} />
-            <Text style={styles.recordButtonText}>Start recording</Text>
+            <View
+              style={[
+                styles.recordIcon,
+                recorderState.isRecording && styles.stopIcon,
+              ]}
+            />
+
+            <Text style={styles.recordButtonText}>
+              {isProcessing
+                ? "Please wait..."
+                : recorderState.isRecording
+                  ? "Stop recording"
+                  : "Start recording"}
+            </Text>
           </Pressable>
 
           <Text style={styles.recordingHint}>
-            Take a breath. Your space is ready.
+            {recorderState.isRecording
+              ? "Your voice is being saved as you record."
+              : "Take a breath. Your space is ready."}
           </Text>
         </View>
 
@@ -98,27 +259,50 @@ export default function App() {
           </View>
 
           <View style={styles.countBadge}>
-            <Text style={styles.countText}>0</Text>
+            <Text style={styles.countText}>{recordings.length}</Text>
           </View>
         </View>
 
-        {/* Empty library state */}
-        <View style={styles.emptyCard}>
-          <View style={styles.emptyIconCircle}>
-            <Text style={styles.emptyIcon}>♫</Text>
-          </View>
+        {/* Recording list */}
+        {recordings.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <View style={styles.emptyIconCircle}>
+              <Text style={styles.emptyIcon}>♫</Text>
+            </View>
 
-          <Text style={styles.emptyTitle}>Your story starts here</Text>
-          <Text style={styles.emptyDescription}>
-            You haven't saved any recordings yet.
-            {"\n"}Your voice notes will appear here.
-          </Text>
-        </View>
+            <Text style={styles.emptyTitle}>Your story starts here</Text>
+            <Text style={styles.emptyDescription}>
+              You haven't saved any recordings yet.
+              {"\n"}Your voice notes will appear here.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.recordingList}>
+            {recordings.map((recording) => (
+              <View key={recording.id} style={styles.savedRecordingCard}>
+                <View style={styles.savedRecordingIcon}>
+                  <Text style={styles.savedRecordingSymbol}>♫</Text>
+                </View>
+
+                <View style={styles.savedRecordingDetails}>
+                  <Text style={styles.savedRecordingTitle}>
+                    {recording.title}
+                  </Text>
+                  <Text style={styles.savedRecordingDate}>
+                    {recording.date}
+                  </Text>
+                </View>
+
+                <Text style={styles.savedRecordingDuration}>
+                  {formatDuration(recording.duration)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Footer */}
-        <Text style={styles.footer}>
-          Made for your moments ♡
-        </Text>
+        <Text style={styles.footer}>Made for your moments ♡</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -197,11 +381,18 @@ const styles = StyleSheet.create({
     padding: 22,
     marginBottom: 36,
   },
+  activeRecordingCard: {
+    backgroundColor: "#E4D9EC",
+  },
   recordingCardTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 26,
+  },
+  recordingTextContainer: {
+    flex: 1,
+    paddingRight: 10,
   },
   cardEyebrow: {
     fontSize: 9,
@@ -231,6 +422,28 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: "#B09BC4",
   },
+  activeWaveBar: {
+    backgroundColor: "#80669B",
+  },
+  timerContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 18,
+  },
+  liveDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: "#C45F76",
+  },
+  timerText: {
+    fontSize: 23,
+    fontWeight: "700",
+    color: "#51415F",
+    fontVariant: ["tabular-nums"],
+  },
   recordButton: {
     height: 54,
     backgroundColor: "#76618C",
@@ -240,14 +453,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
+  stopButton: {
+    backgroundColor: "#B65E72",
+  },
   recordButtonPressed: {
     opacity: 0.8,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   recordIcon: {
     width: 11,
     height: 11,
     borderRadius: 6,
     backgroundColor: "#FFFFFF",
+  },
+  stopIcon: {
+    width: 12,
+    height: 12,
+    borderRadius: 3,
   },
   recordButtonText: {
     fontSize: 14,
@@ -322,6 +546,50 @@ const styles = StyleSheet.create({
     color: "#99919B",
     textAlign: "center",
     marginTop: 8,
+  },
+  recordingList: {
+    gap: 12,
+  },
+  savedRecordingCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F0ECEF",
+  },
+  savedRecordingIcon: {
+    width: 43,
+    height: 43,
+    borderRadius: 14,
+    backgroundColor: "#F2EDF5",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  savedRecordingSymbol: {
+    fontSize: 21,
+    color: "#907BA6",
+  },
+  savedRecordingDetails: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  savedRecordingTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#50465A",
+  },
+  savedRecordingDate: {
+    fontSize: 10,
+    color: "#99919B",
+    marginTop: 5,
+  },
+  savedRecordingDuration: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#76618C",
+    marginLeft: 8,
   },
   footer: {
     fontSize: 11,
