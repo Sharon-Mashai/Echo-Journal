@@ -1,13 +1,7 @@
 ﻿import { StatusBar } from "expo-status-bar";
-import {
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import RecordingCard from "../components/RecordingCard";
 import { useAudioRecording } from "../hooks/useAudioRecording";
 import { formatDuration } from "../utils/formatDuration";
 
@@ -47,88 +41,12 @@ export default function HomeScreen() {
         </View>
 
         {/* Recording card */}
-        <View
-          style={[
-            styles.recordingCard,
-            recorderState.isRecording && styles.activeRecordingCard,
-          ]}
-        >
-          <View style={styles.recordingCardTop}>
-            <View style={styles.recordingTextContainer}>
-              <Text style={styles.cardEyebrow}>
-                {recorderState.isRecording
-                  ? "RECORDING IN PROGRESS"
-                  : "READY WHEN YOU ARE"}
-              </Text>
-
-              <Text style={styles.recordingTitle}>
-                {recorderState.isRecording
-                  ? "Your moment is being captured"
-                  : "Start a new recording"}
-              </Text>
-
-              <Text style={styles.recordingDescription}>
-                {recorderState.isRecording
-                  ? "Speak freely. Take your time."
-                  : "Find your moment. Press record."}
-              </Text>
-            </View>
-
-            <View style={styles.waveform}>
-              {[18, 30, 22, 42, 26, 36, 17].map((height, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.waveBar,
-                    { height },
-                    recorderState.isRecording && styles.activeWaveBar,
-                  ]}
-                />
-              ))}
-            </View>
-          </View>
-
-          {recorderState.isRecording && (
-            <View style={styles.timerContainer}>
-              <View style={styles.liveDot} />
-              <Text style={styles.timerText}>
-                {formatDuration(recorderState.durationMillis)}
-              </Text>
-            </View>
-          )}
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.recordButton,
-              recorderState.isRecording && styles.stopButton,
-              pressed && styles.recordButtonPressed,
-              isProcessing && styles.disabledButton,
-            ]}
-            onPress={handleRecordingButton}
-            disabled={isProcessing}
-          >
-            <View
-              style={[
-                styles.recordIcon,
-                recorderState.isRecording && styles.stopIcon,
-              ]}
-            />
-
-            <Text style={styles.recordButtonText}>
-              {isProcessing
-                ? "Please wait..."
-                : recorderState.isRecording
-                  ? "Stop recording"
-                  : "Start recording"}
-            </Text>
-          </Pressable>
-
-          <Text style={styles.recordingHint}>
-            {recorderState.isRecording
-              ? "Your voice is being saved as you record."
-              : "Take a breath. Your space is ready."}
-          </Text>
-        </View>
+        <RecordingCard
+          isRecording={recorderState.isRecording}
+          isProcessing={isProcessing}
+          durationMillis={recorderState.durationMillis}
+          onRecordingButtonPress={handleRecordingButton}
+        />
 
         {/* Library heading */}
         <View style={styles.sectionHeader}>
@@ -255,115 +173,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: "#8C8490",
     marginTop: 12,
-  },
-  recordingCard: {
-    backgroundColor: "#EAE3F0",
-    borderRadius: 25,
-    padding: 22,
-    marginBottom: 36,
-  },
-  activeRecordingCard: {
-    backgroundColor: "#E4D9EC",
-  },
-  recordingCardTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 26,
-  },
-  recordingTextContainer: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  cardEyebrow: {
-    fontSize: 9,
-    fontWeight: "700",
-    color: "#89769B",
-    letterSpacing: 1.4,
-    marginBottom: 9,
-  },
-  recordingTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#44394F",
-  },
-  recordingDescription: {
-    fontSize: 12,
-    color: "#887D91",
-    marginTop: 6,
-  },
-  waveform: {
-    height: 48,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  waveBar: {
-    width: 4,
-    borderRadius: 5,
-    backgroundColor: "#B09BC4",
-  },
-  activeWaveBar: {
-    backgroundColor: "#80669B",
-  },
-  timerContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 18,
-  },
-  liveDot: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    backgroundColor: "#C45F76",
-  },
-  timerText: {
-    fontSize: 23,
-    fontWeight: "700",
-    color: "#51415F",
-    fontVariant: ["tabular-nums"],
-  },
-  recordButton: {
-    height: 54,
-    backgroundColor: "#76618C",
-    borderRadius: 16,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 10,
-  },
-  stopButton: {
-    backgroundColor: "#B65E72",
-  },
-  recordButtonPressed: {
-    opacity: 0.8,
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  recordIcon: {
-    width: 11,
-    height: 11,
-    borderRadius: 6,
-    backgroundColor: "#FFFFFF",
-  },
-  stopIcon: {
-    width: 12,
-    height: 12,
-    borderRadius: 3,
-  },
-  recordButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  recordingHint: {
-    fontSize: 11,
-    color: "#897D93",
-    textAlign: "center",
-    marginTop: 13,
   },
   sectionHeader: {
     flexDirection: "row",
