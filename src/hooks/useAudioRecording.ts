@@ -1,12 +1,23 @@
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
 import { Alert } from "react-native";
-import { AudioModule, RecordingPresets,setAudioModeAsync, useAudioRecorder, useAudioRecorderState,} from "expo-audio";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  AudioModule,
+  RecordingPresets,
+  setAudioModeAsync,
+  useAudioRecorder,
+  useAudioRecorderState,
+} from "expo-audio";
 
 import type { SavedRecording } from "../types/recording";
+
+const RECORDINGS_STORAGE_KEY = "@echo_journal/recordings";
 
 export function useAudioRecording() {
   const [recordings, setRecordings] = useState<SavedRecording[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoadingRecordings, setIsLoadingRecordings] = useState(true);
 
   const audioRecorder = useAudioRecorder({
     ...RecordingPresets.HIGH_QUALITY,
@@ -14,6 +25,37 @@ export function useAudioRecording() {
   });
 
   const recorderState = useAudioRecorderState(audioRecorder);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadRecordings = async () => {
+      try {
+        const savedRecordings = await AsyncStorage.getItem(
+          RECORDINGS_STORAGE_KEY,
+        );
+
+        if (savedRecordings && isMounted) {
+          const parsedRecordings: SavedRecording[] =
+            JSON.parse(savedRecordings);
+
+          setRecordings(parsedRecordings);
+        }
+      } catch (error) {
+        console.error("Could not load saved recordings:", error);
+      } finally {
+        if (isMounted) {
+          setIsLoadingRecordings(false);
+        }
+      }
+    };
+
+    loadRecordings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleStartRecording = async () => {
     try {
@@ -73,17 +115,21 @@ export function useAudioRecording() {
         duration,
       };
 
-      setRecordings((previousRecordings) => [
-        newRecording,
-        ...previousRecordings,
-      ]);
+      const updatedRecordings = [newRecording, ...recordings];
+
+      await AsyncStorage.setItem(
+        RECORDINGS_STORAGE_KEY,
+        JSON.stringify(updatedRecordings),
+      );
+
+      setRecordings(updatedRecordings);
 
       Alert.alert(
         "Recording saved",
         "Your voice note has been saved successfully.",
       );
     } catch (error) {
-      console.error("Could not stop recording:", error);
+      console.error("Could not save recording:", error);
       Alert.alert(
         "Saving error",
         "Something went wrong while saving your recording.",
@@ -103,7 +149,7 @@ export function useAudioRecording() {
 
   return {
     recordings,
-    isProcessing,
+    isProcessing: isProcessing || isLoadingRecordings,
     recorderState,
     handleRecordingButton,
   };
