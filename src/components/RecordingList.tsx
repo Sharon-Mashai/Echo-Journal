@@ -1,5 +1,6 @@
-import { StyleSheet, Text, View } from "react-native";
-
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import type { SavedRecording } from "../types/recording";
 import { formatDuration } from "../utils/formatDuration";
 
@@ -7,12 +8,72 @@ type RecordingListProps = {
   recordings: SavedRecording[];
 };
 
+type RecordingCardProps = {
+  recording: SavedRecording;
+};
+
+function RecordingItem({ recording }: RecordingCardProps) {
+  const player = useAudioPlayer(recording.uri);
+  const playerStatus = useAudioPlayerStatus(player);
+
+  const isPlaying = playerStatus.playing;
+  const currentTime = playerStatus.currentTime ?? 0;
+  const duration = playerStatus.duration || recording.duration / 1000;
+
+  const progress = duration > 0 ? Math.min(currentTime / duration, 1) : 0;
+
+  const handlePlayback = () => {
+    if (isPlaying) {
+      player.pause();
+    } else {
+      if (playerStatus.didJustFinish) {
+        player.seekTo(0);
+      }
+
+      player.play();
+    }
+  };
+
+  return (
+    <View style={styles.savedRecordingCard}>
+      <Pressable
+        style={styles.playButton}
+        onPress={handlePlayback}
+        accessibilityRole="button"
+        accessibilityLabel={isPlaying ? "Pause recording" : "Play recording"}
+      >
+        <Text style={styles.playButtonSymbol}>{isPlaying ? "Ⅱ" : "▶"}</Text>
+      </Pressable>
+
+      <View style={styles.savedRecordingDetails}>
+        <Text style={styles.savedRecordingTitle}>{recording.title}</Text>
+
+        <Text style={styles.savedRecordingDate}>{recording.date}</Text>
+
+        <View style={styles.progressTrack}>
+          <View
+            style={[styles.progressFill, { width: `${progress * 100}%` }]}
+          />
+        </View>
+      </View>
+
+      <Text style={styles.savedRecordingDuration}>
+        {formatDuration(recording.duration)}
+      </Text>
+    </View>
+  );
+}
+
 export default function RecordingList({ recordings }: RecordingListProps) {
+  const [activeRecordingId, setActiveRecordingId] = useState<string | null>(
+    null,
+  );
+
   if (recordings.length === 0) {
     return (
       <View style={styles.emptyCard}>
         <View style={styles.emptyIconCircle}>
-          <Text style={styles.emptyIcon}>â™«</Text>
+          <Text style={styles.emptyIcon}>♫</Text>
         </View>
 
         <Text style={styles.emptyTitle}>Your story starts here</Text>
@@ -27,21 +88,7 @@ export default function RecordingList({ recordings }: RecordingListProps) {
   return (
     <View style={styles.recordingList}>
       {recordings.map((recording) => (
-        <View key={recording.id} style={styles.savedRecordingCard}>
-          <View style={styles.savedRecordingIcon}>
-            <Text style={styles.savedRecordingSymbol}>â™«</Text>
-          </View>
-
-          <View style={styles.savedRecordingDetails}>
-            <Text style={styles.savedRecordingTitle}>{recording.title}</Text>
-
-            <Text style={styles.savedRecordingDate}>{recording.date}</Text>
-          </View>
-
-          <Text style={styles.savedRecordingDuration}>
-            {formatDuration(recording.duration)}
-          </Text>
-        </View>
+        <RecordingItem key={recording.id} recording={recording} />
       ))}
     </View>
   );
@@ -94,7 +141,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#F0ECEF",
   },
-  savedRecordingIcon: {
+  playButton: {
     width: 43,
     height: 43,
     borderRadius: 14,
@@ -102,8 +149,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  savedRecordingSymbol: {
-    fontSize: 21,
+  playButtonSymbol: {
+    fontSize: 18,
     color: "#907BA6",
   },
   savedRecordingDetails: {
@@ -119,6 +166,18 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#99919B",
     marginTop: 5,
+  },
+  progressTrack: {
+    height: 4,
+    backgroundColor: "#F0ECEF",
+    borderRadius: 4,
+    marginTop: 8,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: 4,
+    backgroundColor: "#907BA6",
+    borderRadius: 4,
   },
   savedRecordingDuration: {
     fontSize: 12,
