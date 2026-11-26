@@ -1,15 +1,7 @@
-
 import { useEffect, useState } from "react";
 import { Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-  AudioModule,
-  RecordingPresets,
-  setAudioModeAsync,
-  useAudioRecorder,
-  useAudioRecorderState,
-} from "expo-audio";
-
+import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder, useAudioRecorderState,} from "expo-audio";
 import type { SavedRecording } from "../types/recording";
 
 const RECORDINGS_STORAGE_KEY = "@echo_journal/recordings";
@@ -139,6 +131,44 @@ export function useAudioRecording() {
     }
   };
 
+  const handleRenameRecording = async (
+    recordingId: string,
+    newTitle: string,
+  ) => {
+    const trimmedTitle = newTitle.trim();
+
+    if (!trimmedTitle) {
+      Alert.alert("Title required", "Please enter a name for your recording.");
+      return;
+    }
+
+    try {
+      const updatedRecordings = recordings.map((recording) =>
+        recording.id === recordingId
+          ? { ...recording, title: trimmedTitle }
+          : recording,
+      );
+
+      await AsyncStorage.setItem(
+        RECORDINGS_STORAGE_KEY,
+        JSON.stringify(updatedRecordings),
+      );
+
+      setRecordings(updatedRecordings);
+
+      Alert.alert(
+        "Recording renamed",
+        "Your voice note name has been updated.",
+      );
+    } catch (error) {
+      console.error("Could not rename recording:", error);
+      Alert.alert(
+        "Rename error",
+        "We couldn't rename your recording. Please try again.",
+      );
+    }
+  };
+
   const handleRecordingButton = () => {
     if (recorderState.isRecording) {
       handleStopRecording();
@@ -152,5 +182,6 @@ export function useAudioRecording() {
     isProcessing: isProcessing || isLoadingRecordings,
     recorderState,
     handleRecordingButton,
+    handleRenameRecording,
   };
 }

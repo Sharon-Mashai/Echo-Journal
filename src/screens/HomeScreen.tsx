@@ -1,13 +1,25 @@
-﻿import { StatusBar } from "expo-status-bar";
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+﻿
+import { StatusBar } from "expo-status-bar";
+import {
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import RecordingCard from "../components/RecordingCard";
 import RecordingList from "../components/RecordingList";
 import { useAudioRecording } from "../hooks/useAudioRecording";
 
 export default function HomeScreen() {
-  const { recordings, isProcessing, recorderState, handleRecordingButton } =
-    useAudioRecording();
+  const {
+    recordings,
+    isProcessing,
+    recorderState,
+    handleRecordingButton,
+    handleRenameRecording,
+  } = useAudioRecording();
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -21,7 +33,9 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.appName}>echo journal</Text>
-            <Text style={styles.headerSubtitle}>Your voice, your moments.</Text>
+            <Text style={styles.headerSubtitle}>
+              Your voice, your moments.
+            </Text>
           </View>
 
           <View style={styles.profileCircle}>
@@ -32,9 +46,11 @@ export default function HomeScreen() {
         {/* Welcome section */}
         <View style={styles.welcomeSection}>
           <Text style={styles.greeting}>A little space for you</Text>
+
           <Text style={styles.welcomeTitle}>
             Capture the moments{"\n"}worth remembering.
           </Text>
+
           <Text style={styles.welcomeDescription}>
             Your thoughts, stories and memories,{"\n"}one recording at a time.
           </Text>
@@ -63,10 +79,13 @@ export default function HomeScreen() {
         </View>
 
         {/* Recording list */}
-        <RecordingList recordings={recordings} />
+        <RecordingList
+          recordings={recordings}
+          onRenameRecording={handleRenameRecording}
+        />
 
         {/* Footer */}
-        <Text style={styles.footer}>Made for your moments â™¡</Text>
+        <Text style={styles.footer}>Made for your moments ♡</Text>
       </ScrollView>
     </SafeAreaView>
   );

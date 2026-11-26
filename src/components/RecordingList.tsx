@@ -1,20 +1,33 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+
 import type { SavedRecording } from "../types/recording";
 import { formatDuration } from "../utils/formatDuration";
 
 type RecordingListProps = {
   recordings: SavedRecording[];
+  onRenameRecording: (recordingId: string, newTitle: string) => Promise<void>;
 };
 
-type RecordingCardProps = {
+type RecordingItemProps = {
   recording: SavedRecording;
+  onRenameRecording: (recordingId: string, newTitle: string) => Promise<void>;
 };
 
-function RecordingItem({ recording }: RecordingCardProps) {
+function RecordingItem({ recording, onRenameRecording }: RecordingItemProps) {
   const player = useAudioPlayer(recording.uri);
   const playerStatus = useAudioPlayerStatus(player);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(recording.title);
 
   const isPlaying = playerStatus.playing;
   const currentTime = playerStatus.currentTime ?? 0;
@@ -34,6 +47,28 @@ function RecordingItem({ recording }: RecordingCardProps) {
     }
   };
 
+  const handleSaveRename = async () => {
+    const trimmedTitle = editedTitle.trim();
+
+    if (!trimmedTitle) {
+      Alert.alert("Title required", "Please enter a name for your recording.");
+      return;
+    }
+
+    if (trimmedTitle === recording.title) {
+      setIsEditing(false);
+      return;
+    }
+
+    await onRenameRecording(recording.id, trimmedTitle);
+    setIsEditing(false);
+  };
+
+  const handleCancelRename = () => {
+    setEditedTitle(recording.title);
+    setIsEditing(false);
+  };
+
   return (
     <View style={styles.savedRecordingCard}>
       <Pressable
@@ -46,7 +81,19 @@ function RecordingItem({ recording }: RecordingCardProps) {
       </Pressable>
 
       <View style={styles.savedRecordingDetails}>
-        <Text style={styles.savedRecordingTitle}>{recording.title}</Text>
+        {isEditing ? (
+          <TextInput
+            style={styles.titleInput}
+            value={editedTitle}
+            onChangeText={setEditedTitle}
+            placeholder="Enter recording name"
+            placeholderTextColor="#AAA1AE"
+            maxLength={50}
+            autoFocus
+          />
+        ) : (
+          <Text style={styles.savedRecordingTitle}>{recording.title}</Text>
+        )}
 
         <Text style={styles.savedRecordingDate}>{recording.date}</Text>
 
@@ -55,6 +102,27 @@ function RecordingItem({ recording }: RecordingCardProps) {
             style={[styles.progressFill, { width: `${progress * 100}%` }]}
           />
         </View>
+
+        {isEditing ? (
+          <View style={styles.editActions}>
+            <Pressable onPress={handleSaveRename}>
+              <Text style={styles.saveButton}>Save</Text>
+            </Pressable>
+
+            <Pressable onPress={handleCancelRename}>
+              <Text style={styles.cancelButton}>Cancel</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            onPress={() => {
+              setEditedTitle(recording.title);
+              setIsEditing(true);
+            }}
+          >
+            <Text style={styles.editButton}>Edit name</Text>
+          </Pressable>
+        )}
       </View>
 
       <Text style={styles.savedRecordingDuration}>
@@ -64,11 +132,10 @@ function RecordingItem({ recording }: RecordingCardProps) {
   );
 }
 
-export default function RecordingList({ recordings }: RecordingListProps) {
-  const [activeRecordingId, setActiveRecordingId] = useState<string | null>(
-    null,
-  );
-
+export default function RecordingList({
+  recordings,
+  onRenameRecording,
+}: RecordingListProps) {
   if (recordings.length === 0) {
     return (
       <View style={styles.emptyCard}>
@@ -77,6 +144,7 @@ export default function RecordingList({ recordings }: RecordingListProps) {
         </View>
 
         <Text style={styles.emptyTitle}>Your story starts here</Text>
+
         <Text style={styles.emptyDescription}>
           You haven't saved any recordings yet.
           {"\n"}Your voice notes will appear here.
@@ -88,7 +156,11 @@ export default function RecordingList({ recordings }: RecordingListProps) {
   return (
     <View style={styles.recordingList}>
       {recordings.map((recording) => (
-        <RecordingItem key={recording.id} recording={recording} />
+        <RecordingItem
+          key={recording.id}
+          recording={recording}
+          onRenameRecording={onRenameRecording}
+        />
       ))}
     </View>
   );
@@ -162,6 +234,15 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#50465A",
   },
+  titleInput: {
+    borderWidth: 1,
+    borderColor: "#DCD2E5",
+    borderRadius: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    fontSize: 13,
+    color: "#50465A",
+  },
   savedRecordingDate: {
     fontSize: 10,
     color: "#99919B",
@@ -178,6 +259,26 @@ const styles = StyleSheet.create({
     height: 4,
     backgroundColor: "#907BA6",
     borderRadius: 4,
+  },
+  editActions: {
+    flexDirection: "row",
+    gap: 16,
+    marginTop: 9,
+  },
+  editButton: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#907BA6",
+    marginTop: 8,
+  },
+  saveButton: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#76618C",
+  },
+  cancelButton: {
+    fontSize: 11,
+    color: "#99919B",
   },
   savedRecordingDuration: {
     fontSize: 12,
