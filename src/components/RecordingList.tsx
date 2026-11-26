@@ -136,6 +136,12 @@ export default function RecordingList({
   recordings,
   onRenameRecording,
 }: RecordingListProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredRecordings = recordings.filter((recording) =>
+    recording.title.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+  );
+
   if (recordings.length === 0) {
     return (
       <View style={styles.emptyCard}>
@@ -154,19 +160,51 @@ export default function RecordingList({
   }
 
   return (
-    <View style={styles.recordingList}>
-      {recordings.map((recording) => (
-        <RecordingItem
-          key={recording.id}
-          recording={recording}
-          onRenameRecording={onRenameRecording}
-        />
-      ))}
+    <View>
+      <TextInput
+        style={styles.searchInput}
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder="Search recordings..."
+        placeholderTextColor="#AAA1AE"
+        autoCapitalize="none"
+        clearButtonMode="while-editing"
+      />
+
+      {filteredRecordings.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>No recordings found</Text>
+          <Text style={styles.emptyDescription}>
+            Try searching with a different name.
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.recordingList}>
+          {filteredRecordings.map((recording) => (
+            <RecordingItem
+              key={recording.id}
+              recording={recording}
+              onRenameRecording={onRenameRecording}
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  searchInput: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#F0ECEF",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 13,
+    color: "#50465A",
+    marginBottom: 12,
+  },
   emptyCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 22,
