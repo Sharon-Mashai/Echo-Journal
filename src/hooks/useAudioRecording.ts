@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder, useAudioRecorderState,} from "expo-audio";
+import {
+  AudioModule,
+  RecordingPresets,
+  setAudioModeAsync,
+  useAudioRecorder,
+  useAudioRecorderState,
+} from "expo-audio";
+
 import type { SavedRecording } from "../types/recording";
+import { getWebAudio, saveWebAudio } from "../utils/webAudioStorage";
 
 const RECORDINGS_STORAGE_KEY = "@echo_journal/recordings";
 
@@ -31,7 +39,34 @@ export function useAudioRecording() {
           const parsedRecordings: SavedRecording[] =
             JSON.parse(savedRecordings);
 
-          setRecordings(parsedRecordings);
+          if (Platform.OS === "web") {
+            const recordingsWithFreshUris = await Promise.all(
+              parsedRecordings.map(async (recording) => {
+                try {
+                  const audioBlob = await getWebAudio(recording.id);
+
+                  if (audioBlob) {
+                    return {
+                      ...recording,
+                      uri: URL.createObjectURL(audioBlob),
+                    };
+                  }
+
+                  return recording;
+                } catch (error) {
+                  console.error("Could not restore recording audio:", error);
+
+                  return recording;
+                }
+              }),
+            );
+
+            if (isMounted) {
+              setRecordings(recordingsWithFreshUris);
+            }
+          } else {
+            setRecordings(parsedRecordings);
+          }
         }
       } catch (error) {
         console.error("Could not load saved recordings:", error);
@@ -99,8 +134,17 @@ export function useAudioRecording() {
         return;
       }
 
+      const recordingId = `${Date.now()}`;
+
+      if (Platform.OS === "web") {
+        const audioResponse = await fetch(uri);
+        const audioBlob = await audioResponse.blob();
+
+        await saveWebAudio(recordingId, audioBlob);
+      }
+
       const newRecording: SavedRecording = {
-        id: `${Date.now()}`,
+        id: recordingId,
         uri,
         title: `Voice note ${recordings.length + 1}`,
         date: new Date().toLocaleString(),
