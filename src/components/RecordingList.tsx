@@ -1,16 +1,10 @@
 import { useState } from "react";
-import {
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 
 import type { SavedRecording } from "../types/recording";
 import { formatDuration } from "../utils/formatDuration";
+import { useShowAlert } from "../utils/showAlert";
 
 type RecordingListProps = {
   recordings: SavedRecording[];
@@ -23,6 +17,8 @@ type RecordingItemProps = {
 };
 
 function RecordingItem({ recording, onRenameRecording }: RecordingItemProps) {
+  const showAlert = useShowAlert();
+
   const player = useAudioPlayer(recording.uri);
   const playerStatus = useAudioPlayerStatus(player);
 
@@ -51,7 +47,7 @@ function RecordingItem({ recording, onRenameRecording }: RecordingItemProps) {
     const trimmedTitle = editedTitle.trim();
 
     if (!trimmedTitle) {
-      Alert.alert("Title required", "Please enter a name for your recording.");
+      showAlert("Title required", "Please enter a name for your recording.");
       return;
     }
 
@@ -77,7 +73,9 @@ function RecordingItem({ recording, onRenameRecording }: RecordingItemProps) {
         accessibilityRole="button"
         accessibilityLabel={isPlaying ? "Pause recording" : "Play recording"}
       >
-        <Text style={styles.playButtonSymbol}>{isPlaying ? "Ⅱ" : "▶"}</Text>
+        <Text style={styles.playButtonSymbol}>
+          {isPlaying ? "Ã¢â€¦Â¡" : "Ã¢â€“Â¶"}
+        </Text>
       </Pressable>
 
       <View style={styles.savedRecordingDetails}>
@@ -146,7 +144,7 @@ export default function RecordingList({
     return (
       <View style={styles.emptyCard}>
         <View style={styles.emptyIconCircle}>
-          <Text style={styles.emptyIcon}>♫</Text>
+          <Text style={styles.emptyIcon}>Ã¢â„¢Â«</Text>
         </View>
 
         <Text style={styles.emptyTitle}>Your story starts here</Text>

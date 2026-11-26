@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, Platform } from "react-native";
+import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   AudioModule,
@@ -11,10 +11,13 @@ import {
 
 import type { SavedRecording } from "../types/recording";
 import { getWebAudio, saveWebAudio } from "../utils/webAudioStorage";
+import { useShowAlert } from "../utils/showAlert";
 
 const RECORDINGS_STORAGE_KEY = "@echo_journal/recordings";
 
 export function useAudioRecording() {
+  const showAlert = useShowAlert();
+
   const [recordings, setRecordings] = useState<SavedRecording[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoadingRecordings, setIsLoadingRecordings] = useState(true);
@@ -55,7 +58,6 @@ export function useAudioRecording() {
                   return recording;
                 } catch (error) {
                   console.error("Could not restore recording audio:", error);
-
                   return recording;
                 }
               }),
@@ -91,7 +93,7 @@ export function useAudioRecording() {
       const permission = await AudioModule.requestRecordingPermissionsAsync();
 
       if (!permission.granted) {
-        Alert.alert(
+        showAlert(
           "Microphone permission required",
           "Please allow Echo Journal to access your microphone before recording.",
         );
@@ -107,7 +109,7 @@ export function useAudioRecording() {
       audioRecorder.record();
     } catch (error) {
       console.error("Could not start recording:", error);
-      Alert.alert(
+      showAlert(
         "Recording error",
         "We couldn't start your recording. Please try again.",
       );
@@ -127,7 +129,7 @@ export function useAudioRecording() {
       const uri = audioRecorder.uri;
 
       if (!uri) {
-        Alert.alert(
+        showAlert(
           "Recording not saved",
           "We couldn't find the saved audio file. Please try again.",
         );
@@ -160,13 +162,13 @@ export function useAudioRecording() {
 
       setRecordings(updatedRecordings);
 
-      Alert.alert(
+      showAlert(
         "Recording saved",
         "Your voice note has been saved successfully.",
       );
     } catch (error) {
       console.error("Could not save recording:", error);
-      Alert.alert(
+      showAlert(
         "Saving error",
         "Something went wrong while saving your recording.",
       );
@@ -182,7 +184,7 @@ export function useAudioRecording() {
     const trimmedTitle = newTitle.trim();
 
     if (!trimmedTitle) {
-      Alert.alert("Title required", "Please enter a name for your recording.");
+      showAlert("Title required", "Please enter a name for your recording.");
       return;
     }
 
@@ -200,13 +202,10 @@ export function useAudioRecording() {
 
       setRecordings(updatedRecordings);
 
-      Alert.alert(
-        "Recording renamed",
-        "Your voice note name has been updated.",
-      );
+      showAlert("Recording renamed", "Your voice note name has been updated.");
     } catch (error) {
       console.error("Could not rename recording:", error);
-      Alert.alert(
+      showAlert(
         "Rename error",
         "We couldn't rename your recording. Please try again.",
       );
