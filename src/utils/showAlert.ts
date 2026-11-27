@@ -5,3 +5,9 @@ export function useShowAlert() {
 
   return showAlert;
 }
+
+export function useShowConfirm() {
+  const { showConfirm } = useCustomAlert();
+
+  return showConfirm;
+}

@@ -4,20 +4,27 @@ import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 
 import type { SavedRecording } from "../types/recording";
 import { formatDuration } from "../utils/formatDuration";
-import { useShowAlert } from "../utils/showAlert";
+import { useShowAlert, useShowConfirm } from "../utils/showAlert";
 
 type RecordingListProps = {
   recordings: SavedRecording[];
   onRenameRecording: (recordingId: string, newTitle: string) => Promise<void>;
+  onDeleteRecording: (recordingId: string) => Promise<void>;
 };
 
 type RecordingItemProps = {
   recording: SavedRecording;
   onRenameRecording: (recordingId: string, newTitle: string) => Promise<void>;
+  onDeleteRecording: (recordingId: string) => Promise<void>;
 };
 
-function RecordingItem({ recording, onRenameRecording }: RecordingItemProps) {
+function RecordingItem({
+  recording,
+  onRenameRecording,
+  onDeleteRecording,
+}: RecordingItemProps) {
   const showAlert = useShowAlert();
+  const showConfirm = useShowConfirm();
 
   const player = useAudioPlayer(recording.uri);
   const playerStatus = useAudioPlayerStatus(player);
@@ -65,6 +72,20 @@ function RecordingItem({ recording, onRenameRecording }: RecordingItemProps) {
     setIsEditing(false);
   };
 
+  const handleDelete = () => {
+    showConfirm(
+      "Delete recording?",
+      `Are you sure you want to delete "${recording.title}"? This cannot be undone.`,
+      async () => {
+        if (isPlaying) {
+          player.pause();
+        }
+
+        await onDeleteRecording(recording.id);
+      },
+    );
+  };
+
   return (
     <View style={styles.savedRecordingCard}>
       <Pressable
@@ -74,7 +95,7 @@ function RecordingItem({ recording, onRenameRecording }: RecordingItemProps) {
         accessibilityLabel={isPlaying ? "Pause recording" : "Play recording"}
       >
         <Text style={styles.playButtonSymbol}>
-          {isPlaying ? "Ã¢â€¦Â¡" : "Ã¢â€“Â¶"}
+          {isPlaying ? "ÃƒÂ¢Ã¢â‚¬Â¦Ã‚Â¡" : "ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¶"}
         </Text>
       </Pressable>
 
@@ -112,14 +133,24 @@ function RecordingItem({ recording, onRenameRecording }: RecordingItemProps) {
             </Pressable>
           </View>
         ) : (
-          <Pressable
-            onPress={() => {
-              setEditedTitle(recording.title);
-              setIsEditing(true);
-            }}
-          >
-            <Text style={styles.editButton}>Edit name</Text>
-          </Pressable>
+          <View style={styles.recordingActions}>
+            <Pressable
+              onPress={() => {
+                setEditedTitle(recording.title);
+                setIsEditing(true);
+              }}
+            >
+              <Text style={styles.editButton}>Edit name</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={handleDelete}
+              accessibilityRole="button"
+              accessibilityLabel={`Delete ${recording.title}`}
+            >
+              <Text style={styles.deleteButton}>Delete</Text>
+            </Pressable>
+          </View>
         )}
       </View>
 
@@ -133,6 +164,7 @@ function RecordingItem({ recording, onRenameRecording }: RecordingItemProps) {
 export default function RecordingList({
   recordings,
   onRenameRecording,
+  onDeleteRecording,
 }: RecordingListProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -144,7 +176,7 @@ export default function RecordingList({
     return (
       <View style={styles.emptyCard}>
         <View style={styles.emptyIconCircle}>
-          <Text style={styles.emptyIcon}>Ã¢â„¢Â«</Text>
+          <Text style={styles.emptyIcon}>ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â«</Text>
         </View>
 
         <Text style={styles.emptyTitle}>Your story starts here</Text>
@@ -183,6 +215,7 @@ export default function RecordingList({
               key={recording.id}
               recording={recording}
               onRenameRecording={onRenameRecording}
+              onDeleteRecording={onDeleteRecording}
             />
           ))}
         </View>
@@ -301,11 +334,21 @@ const styles = StyleSheet.create({
     gap: 16,
     marginTop: 9,
   },
+  recordingActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    marginTop: 8,
+  },
   editButton: {
     fontSize: 11,
     fontWeight: "600",
     color: "#907BA6",
-    marginTop: 8,
+  },
+  deleteButton: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#B65E72",
   },
   saveButton: {
     fontSize: 11,

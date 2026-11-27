@@ -1,41 +1,48 @@
-
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useState } from "react";
 import type { ReactNode } from "react";
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
 type CustomAlertContextType = {
   showAlert: (title: string, message: string) => void;
+  showConfirm: (
+    title: string,
+    message: string,
+    onConfirm: () => void | Promise<void>,
+  ) => void;
 };
 
-const CustomAlertContext =
-  createContext<CustomAlertContextType | undefined>(undefined);
+const CustomAlertContext = createContext<CustomAlertContextType | undefined>(
+  undefined,
+);
 
 type CustomAlertProviderProps = {
   children: ReactNode;
 };
 
-export function CustomAlertProvider({
-  children,
-}: CustomAlertProviderProps) {
+export function CustomAlertProvider({ children }: CustomAlertProviderProps) {
   const [visible, setVisible] = useState(false);
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
+  const [confirmAction, setConfirmAction] = useState<
+    (() => void | Promise<void>) | null
+  >(null);
 
-  const showAlert = useCallback(
-    (alertTitle: string, alertMessage: string) => {
-      setTitle(alertTitle);
-      setMessage(alertMessage);
+  const showAlert = useCallback((alertTitle: string, alertMessage: string) => {
+    setTitle(alertTitle);
+    setMessage(alertMessage);
+    setConfirmAction(null);
+    setVisible(true);
+  }, []);
+
+  const showConfirm = useCallback(
+    (
+      confirmTitle: string,
+      confirmMessage: string,
+      onConfirm: () => void | Promise<void>,
+    ) => {
+      setTitle(confirmTitle);
+      setMessage(confirmMessage);
+      setConfirmAction(() => onConfirm);
       setVisible(true);
     },
     [],
@@ -43,10 +50,20 @@ export function CustomAlertProvider({
 
   const closeAlert = () => {
     setVisible(false);
+    setConfirmAction(null);
+  };
+
+  const handleConfirm = async () => {
+    const action = confirmAction;
+    closeAlert();
+
+    if (action) {
+      await action();
+    }
   };
 
   return (
-    <CustomAlertContext.Provider value={{ showAlert }}>
+    <CustomAlertContext.Provider value={{ showAlert, showConfirm }}>
       {children}
 
       <Modal
@@ -65,13 +82,33 @@ export function CustomAlertProvider({
 
             <Text style={styles.message}>{message}</Text>
 
-            <Pressable
-              style={styles.button}
-              onPress={closeAlert}
-              accessibilityRole="button"
-            >
-              <Text style={styles.buttonText}>OK</Text>
-            </Pressable>
+            {confirmAction ? (
+              <View style={styles.confirmActions}>
+                <Pressable
+                  style={styles.cancelButton}
+                  onPress={closeAlert}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </Pressable>
+
+                <Pressable
+                  style={styles.deleteButton}
+                  onPress={handleConfirm}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.deleteButtonText}>Delete</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                style={styles.button}
+                onPress={closeAlert}
+                accessibilityRole="button"
+              >
+                <Text style={styles.buttonText}>OK</Text>
+              </Pressable>
+            )}
           </View>
         </View>
       </Modal>
@@ -83,9 +120,7 @@ export function useCustomAlert() {
   const context = useContext(CustomAlertContext);
 
   if (!context) {
-    throw new Error(
-      "useCustomAlert must be used inside CustomAlertProvider",
-    );
+    throw new Error("useCustomAlert must be used inside CustomAlertProvider");
   }
 
   return context;
@@ -145,6 +180,36 @@ const styles = StyleSheet.create({
     marginTop: 23,
   },
   buttonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  confirmActions: {
+    flexDirection: "row",
+    width: "100%",
+    gap: 10,
+    marginTop: 23,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: "#EAE3F0",
+    borderRadius: 13,
+    paddingVertical: 13,
+    alignItems: "center",
+  },
+  cancelButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#76618C",
+  },
+  deleteButton: {
+    flex: 1,
+    backgroundColor: "#B65E72",
+    borderRadius: 13,
+    paddingVertical: 13,
+    alignItems: "center",
+  },
+  deleteButtonText: {
     fontSize: 13,
     fontWeight: "700",
     color: "#FFFFFF",

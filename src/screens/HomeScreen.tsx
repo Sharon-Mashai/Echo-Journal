@@ -1,12 +1,5 @@
-﻿
-import { StatusBar } from "expo-status-bar";
-import {
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+﻿import { StatusBar } from "expo-status-bar";
+import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import RecordingCard from "../components/RecordingCard";
 import RecordingList from "../components/RecordingList";
@@ -19,6 +12,7 @@ export default function HomeScreen() {
     recorderState,
     handleRecordingButton,
     handleRenameRecording,
+    handleDeleteRecording,
   } = useAudioRecording();
 
   return (
@@ -33,9 +27,7 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.appName}>echo journal</Text>
-            <Text style={styles.headerSubtitle}>
-              Your voice, your moments.
-            </Text>
+            <Text style={styles.headerSubtitle}>Your voice, your moments.</Text>
           </View>
 
           <View style={styles.profileCircle}>
@@ -82,6 +74,7 @@ export default function HomeScreen() {
         <RecordingList
           recordings={recordings}
           onRenameRecording={handleRenameRecording}
+          onDeleteRecording={handleDeleteRecording}
         />
 
         {/* Footer */}

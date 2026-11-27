@@ -64,3 +64,28 @@ export async function getWebAudio(recordingId: string): Promise<Blob | null> {
     };
   });
 }
+
+export async function deleteWebAudio(recordingId: string): Promise<void> {
+  const database = await openDatabase();
+
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(STORE_NAME, "readwrite");
+
+    transaction.objectStore(STORE_NAME).delete(recordingId);
+
+    transaction.oncomplete = () => {
+      database.close();
+      resolve();
+    };
+
+    transaction.onerror = () => {
+      database.close();
+      reject(transaction.error);
+    };
+
+    transaction.onabort = () => {
+      database.close();
+      reject(transaction.error);
+    };
+  });
+}

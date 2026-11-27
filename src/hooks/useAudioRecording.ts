@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { File } from "expo-file-system";
 import {
   AudioModule,
   RecordingPresets,
@@ -10,7 +11,11 @@ import {
 } from "expo-audio";
 
 import type { SavedRecording } from "../types/recording";
-import { getWebAudio, saveWebAudio } from "../utils/webAudioStorage";
+import {
+  deleteWebAudio,
+  getWebAudio,
+  saveWebAudio,
+} from "../utils/webAudioStorage";
 import { useShowAlert } from "../utils/showAlert";
 
 const RECORDINGS_STORAGE_KEY = "@echo_journal/recordings";
@@ -212,6 +217,51 @@ export function useAudioRecording() {
     }
   };
 
+  const handleDeleteRecording = async (recordingId: string) => {
+    const recordingToDelete = recordings.find(
+      (recording) => recording.id === recordingId,
+    );
+
+    if (!recordingToDelete) {
+      return;
+    }
+
+    try {
+      if (Platform.OS === "web") {
+        await deleteWebAudio(recordingId);
+
+        if (recordingToDelete.uri.startsWith("blob:")) {
+          URL.revokeObjectURL(recordingToDelete.uri);
+        }
+      } else {
+        const audioFile = new File(recordingToDelete.uri);
+
+        if (audioFile.exists) {
+          audioFile.delete();
+        }
+      }
+
+      const updatedRecordings = recordings.filter(
+        (recording) => recording.id !== recordingId,
+      );
+
+      await AsyncStorage.setItem(
+        RECORDINGS_STORAGE_KEY,
+        JSON.stringify(updatedRecordings),
+      );
+
+      setRecordings(updatedRecordings);
+
+      showAlert("Recording deleted", "Your voice note has been deleted.");
+    } catch (error) {
+      console.error("Could not delete recording:", error);
+      showAlert(
+        "Delete error",
+        "We couldn't delete your recording. Please try again.",
+      );
+    }
+  };
+
   const handleRecordingButton = () => {
     if (recorderState.isRecording) {
       handleStopRecording();
@@ -226,5 +276,6 @@ export function useAudioRecording() {
     recorderState,
     handleRecordingButton,
     handleRenameRecording,
+    handleDeleteRecording,
   };
 }
